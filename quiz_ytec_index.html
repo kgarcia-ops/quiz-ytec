@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiBUC Quiz — Y-TEC 2026</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0A0A18;min-height:100vh;color:#fff}
+
+  /* PANTALLA INICIO */
+  .screen{display:none;min-height:100vh;padding:1.5rem}
+  .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+  .logo{font-size:48px;font-weight:900;letter-spacing:-2px;margin-bottom:6px}
+  .logo .ai{color:#E8001D}
+  .logo .buc{color:#4B0CE0}
+  .logo-sub{color:#aaa;font-size:14px;margin-bottom:2rem;text-align:center}
+
+  .card{background:#111130;border:1.5px solid #2a2a50;border-radius:16px;padding:2rem;width:100%;max-width:420px}
+  .card-title{font-size:22px;font-weight:700;margin-bottom:6px;text-align:center}
+  .card-sub{color:#aaa;font-size:14px;text-align:center;margin-bottom:1.5rem;line-height:1.5}
+
+  input[type=text]{width:100%;padding:0.85rem 1rem;font-size:16px;border:1.5px solid #3a3a60;border-radius:10px;background:#0a0a25;color:#fff;margin-bottom:1rem;outline:none}
+  input[type=text]:focus{border-color:#4B0CE0}
+  input[type=text]::placeholder{color:#666}
+
+  .btn{width:100%;padding:0.9rem;font-size:17px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all 0.15s}
+  .btn-red{background:#E8001D;color:#fff}.btn-red:hover{background:#c00018;transform:scale(0.98)}
+  .btn-purple{background:#4B0CE0;color:#fff}.btn-purple:hover{background:#3a09b0}
+  .btn-outline{background:transparent;color:#4B0CE0;border:2px solid #4B0CE0;margin-top:0.5rem}
+  .btn-outline:hover{background:#4B0CE011}
+
+  /* ESPERA */
+  .wait-icon{font-size:52px;margin-bottom:1rem}
+  .wait-name{font-size:22px;font-weight:700;color:#FFD600;margin-bottom:0.5rem}
+  .pulse{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  /* COUNTDOWN */
+  .countdown-big{font-size:100px;font-weight:900;color:#FFD600;line-height:1;margin:1rem 0}
+  .countdown-label{font-size:20px;color:#aaa;margin-bottom:0.5rem}
+  .countdown-q{font-size:16px;color:#888;margin-top:0.5rem;text-align:center;padding:0 1rem}
+
+  /* PREGUNTA */
+  .q-screen{padding:1rem;max-width:500px;margin:0 auto;width:100%}
+  .q-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem}
+  .q-num{font-size:13px;color:#aaa;font-weight:600}
+  .q-timer{font-size:26px;font-weight:900;color:#FFD600;min-width:44px;text-align:right}
+  .q-timer.urgent{color:#E8001D;animation:pulse 0.5s infinite}
+
+  .progress{height:6px;background:#1a1a35;border-radius:99px;margin-bottom:1rem;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#E8001D,#4B0CE0);border-radius:99px;transition:width 0.4s}
+
+  .q-text{font-size:19px;font-weight:700;line-height:1.4;margin-bottom:1.25rem;min-height:60px}
+
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+  .opt{padding:1rem 0.75rem;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all 0.12s;line-height:1.3;text-align:center}
+  .opt-a{background:#E8001D22;border-color:#E8001D;color:#fff}
+  .opt-b{background:#4B0CE022;border-color:#4B0CE0;color:#fff}
+  .opt-c{background:#FFD60022;border-color:#FFD600;color:#fff}
+  .opt-d{background:#22884422;border-color:#22AA66;color:#fff}
+  .opt:hover:not(.disabled){transform:scale(0.97);opacity:0.85}
+  .opt.selected{transform:scale(0.95);opacity:0.7}
+  .opt.correct{background:#22884488;border-color:#22AA66;animation:flash-green 0.4s}
+  .opt.wrong{background:#E8001D88;border-color:#E8001D}
+  .opt.show-correct{background:#22884444;border-color:#22AA66}
+  .opt.disabled{pointer-events:none}
+  @keyframes flash-green{0%{transform:scale(1.05)}100%{transform:scale(1)}}
+
+  .feedback{padding:0.85rem 1rem;border-radius:10px;font-size:14px;font-weight:600;margin-top:0.5rem;line-height:1.4;display:none}
+  .feedback.show{display:block}
+  .feedback.ok{background:#22884433;border:1px solid #22AA66;color:#88ffaa}
+  .feedback.nope{background:#E8001D22;border:1px solid #E8001D;color:#ffaaaa}
+  .feedback.timeout{background:#FFD60022;border:1px solid #FFD600;color:#FFD600}
+
+  .pts-badge{font-size:28px;font-weight:900;color:#FFD600;text-align:center;margin:0.5rem 0;display:none}
+  .pts-badge.show{display:block;animation:pop 0.3s ease-out}
+  @keyframes pop{0%{transform:scale(0.5)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+  /* RESULTADO FINAL */
+  .result-icon{font-size:64px;margin-bottom:0.5rem}
+  .result-score{font-size:60px;font-weight:900;color:#4B0CE0;line-height:1}
+  .result-label{color:#aaa;font-size:15px;margin:4px 0 1rem}
+  .result-msg{font-size:18px;font-weight:700;text-align:center;margin-bottom:0.5rem;line-height:1.4}
+  .result-sub{font-size:14px;color:#aaa;text-align:center;margin-bottom:1.5rem;line-height:1.5}
+
+  .qr-box{background:#fff;border-radius:16px;padding:12px;display:inline-block;margin-bottom:0.5rem}
+  .qr-box img{width:160px;height:160px;display:block}
+  .qr-label{font-size:16px;font-weight:700;color:#E8001D;margin-top:6px;text-align:center}
+
+  /* LEADERBOARD (pantalla del host) */
+  .lb-wrap{width:100%;max-width:600px}
+  .lb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+  .lb-title{font-size:22px;font-weight:700}
+  .badge{background:#4B0CE0;color:#fff;font-size:12px;padding:4px 12px;border-radius:99px;font-weight:600}
+  .badge-red{background:#E8001D}
+  .badge-yellow{background:#996600;color:#FFD600}
+
+  .lb-row{display:flex;align-items:center;gap:10px;padding:0.75rem 1rem;border-radius:10px;margin-bottom:6px;background:#111130;border:1px solid #2a2a50;transition:all 0.4s}
+  .lb-row.top1{background:#2a1a00;border-color:#FFD600}
+  .lb-row.top2{background:#1a1a2a;border-color:#aaa}
+  .lb-row.top3{background:#1a0f00;border-color:#cc7700}
+  .lb-medal{font-size:22px;min-width:32px;text-align:center}
+  .lb-name{flex:1;font-size:15px;font-weight:600}
+  .lb-right{text-align:right}
+  .lb-pts{font-size:14px;font-weight:700;color:#4B0CE0}
+  .lb-time{font-size:11px;color:#666}
+  .lb-bar-wrap{width:80px;height:5px;background:#2a2a50;border-radius:99px;overflow:hidden}
+  .lb-bar{height:100%;background:#4B0CE0;border-radius:99px;transition:width 0.5s}
+
+  .ctrl-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+  .ctrl{padding:0.55rem 1rem;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:1.5px solid #3a3a60;background:#111130;color:#fff}
+  .ctrl:hover{border-color:#4B0CE0;background:#1a1a40}
+  .ctrl-go{background:#E8001D;border-color:#E8001D}.ctrl-go:hover{background:#c00018}
+  .ctrl-next{background:#4B0CE0;border-color:#4B0CE0}.ctrl-next:hover{background:#3a09b0}
+
+  .live-q-box{background:#111130;border:1px solid #3a3a60;border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.75rem}
+  .live-q-text{font-size:14px;font-weight:600;margin-bottom:6px;color:#fff}
+  .live-q-stats{display:flex;gap:16px;font-size:13px;color:#aaa;flex-wrap:wrap}
+  .live-q-stats strong{color:#FFD600}
+
+  /* NAV TABS */
+  .nav-tabs{display:flex;background:#0a0a20;border-bottom:1px solid #2a2a50;position:sticky;top:0;z-index:10}
+  .nav-tab{flex:1;padding:0.85rem;font-size:13px;font-weight:600;text-align:center;cursor:pointer;color:#666;border-bottom:3px solid transparent;transition:all 0.15s}
+  .nav-tab.active{color:#4B0CE0;border-bottom-color:#4B0CE0}
+
+  .tab-content{display:none;padding:1rem;max-width:500px;margin:0 auto;width:100%}
+  .tab-content.active{display:block}
+
+  .demo-note{font-size:11px;color:#444;text-align:center;padding:0.75rem;margin-top:0.5rem;border-top:1px solid #1a1a35}
+
+  @media(max-width:380px){
+    .opts{grid-template-columns:1fr}
+    .q-text{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('player')">📱 Jugador</div>
+  <div class="nav-tab" onclick="switchTab('host')">🖥️ Pantalla</div>
+</div>
+
+<!-- JUGADOR TAB -->
+<div class="tab-content active" id="tab-player">
+
+  <!-- S1: Registro -->
+  <div class="screen active" id="s-register" style="min-height:calc(100vh - 48px)">
+    <div class="logo"><span class="ai">Ai</span><span class="buc">BUC</span></div>
+    <div class="logo-sub">Quiz — Y-TEC 2026 · Emprendimiento e IA</div>
+    <div class="card">
+      <div class="card-title">¡Entrá al juego!</div>
+      <div class="card-sub">Poné tu nombre y preparate para competir. El más rápido y correcto gana 🏆</div>
+      <input type="text" id="inp-name" placeholder="Tu nombre o apodo..." maxlength="20" />
+      <button class="btn btn-red" onclick="joinGame()">Entrar →</button>
+    </div>
+  </div>
+
+  <!-- S2: Espera -->
+  <div class="screen" id="s-wait" style="min-height:calc(100vh - 48px)">
+    <div class="wait-icon pulse">⏳</div>
+    <div class="wait-name" id="wait-name"></div>
+    <div style="color:#aaa;font-size:15px;text-align:center">Conectado y listo.<br>Esperá la primera pregunta...</div>
+  </div>
+
+  <!-- S3: Countdown -->
+  <div class="screen" id="s-countdown" style="min-height:calc(100vh - 48px)">
+    <div style="color:#aaa;font-size:16px;font-weight:600;margin-bottom:0.5rem" id="cd-label">Pregunta 1</div>
+    <div class="countdown-big" id="cd-num">3</div>
+    <div class="countdown-q" id="cd-preview"></div>
+  </div>
+
+  <!-- S4: Pregunta -->
+  <div class="screen" id="s-question" style="min-height:calc(100vh - 48px);justify-content:flex-start;padding-top:1rem">
+    <div class="q-screen" style="width:100%">
+      <div class="q-top">
+        <div class="q-num" id="q-num-label"></div>
+        <div class="q-timer" id="q-timer">15</div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="q-progress" style="width:0%"></div></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="opts" id="q-opts"></div>
+      <div class="feedback" id="q-feedback"></div>
+      <div class="pts-badge" id="q-pts"></div>
+    </div>
+  </div>
+
+  <!-- S5: Resultado final -->
+  <div class="screen" id="s-result" style="min-height:calc(100vh - 48px)">
+    <div class="result-icon" id="r-icon">🎉</div>
+    <div class="result-score" id="r-score">0</div>
+    <div class="result-label">puntos</div>
+    <div class="result-msg" id="r-msg"></div>
+    <div class="result-sub" id="r-sub"></div>
+    <div class="qr-box">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=https://www.ai-buc.com&color=4B0CE0" alt="QR AiBUC" />
+    </div>
+    <div class="qr-label">www.ai-buc.com — ¡gratis!</div>
+  </div>
+
+</div><!-- /tab-player -->
+
+<!-- HOST TAB -->
+<div class="tab-content" id="tab-host">
+  <div style="max-width:600px;margin:0 auto;padding:0.5rem 0">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:8px">
+      <div style="font-size:18px;font-weight:700">Panel del Host</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge" id="h-badge-players">0 jugadores</span>
+        <span class="badge badge-red" id="h-badge-q">Q 0/7</span>
+        <span class="badge badge-yellow" id="h-badge-timer">–</span>
+      </div>
+    </div>
+
+    <div class="ctrl-row">
+      <button class="ctrl ctrl-go" onclick="hostLaunch()" id="btn-launch">▶ Lanzar pregunta 1</button>
+      <button class="ctrl ctrl-next" onclick="hostNext()" id="btn-next" style="display:none">→ Siguiente</button>
+      <button class="ctrl" onclick="addFake()">+ Jugador simulado</button>
+      <button class="ctrl" onclick="hostReset()">↺ Reiniciar</button>
+    </div>
+
+    <div id="h-live-q" style="display:none"></div>
+    <div id="h-leaderboard"></div>
+    <div class="demo-note">Proyectá esta pestaña en el cañón. Los chicos abren la pestaña "📱 Jugador" en su celu.</div>
+  </div>
+</div>
+
+<script>
+const QS = [
+  {q:"¿Qué es un plan de negocios?",opts:["Un contrato legal","Una hoja de ruta para tu idea","Un presupuesto del gobierno","Un registro contable"],ans:1,exp:"Es la hoja de ruta de tu idea: te dice a dónde vas y cómo llegar."},
+  {q:"¿Cuál es la primera pregunta de un buen plan?",opts:["¿Cuánto voy a ganar?","¿Qué problema resuelvo?","¿Cuántos empleados necesito?","¿En qué país opero?"],ans:1,exp:"Todo empieza por identificar el problema que resolvés."},
+  {q:"¿Qué hace la IA en AiBUC?",opts:["Reemplaza al emprendedor","Crea el plan solo en segundos","Te guía para que VOS lo construyas","Contacta inversores por vos"],ans:2,exp:"La IA te hace las preguntas correctas para que vos pienses mejor."},
+  {q:"¿Qué significa MVP en emprendimiento?",opts:["Mejor Vendedor Profesional","Producto Mínimo Viable","Marca de Valor Premium","Módulo de Ventas Pro"],ans:1,exp:"MVP = la versión más simple de tu idea para probar si funciona."},
+  {q:"¿Cuánto cuesta empezar en AiBUC?",opts:["$5.000 pesos","$99 por mes","Gratis","$200 por plan"],ans:2,exp:"AiBUC tiene versión gratuita. Sin tarjeta, sin nada."},
+  {q:"Sin plan de negocios, ¿cuál es el riesgo más grande?",opts:["No podés registrar la empresa","No conseguís clientes nunca","Perdés tiempo sin saber por qué falla","Te roban la idea"],ans:2,exp:"Sin plan, cuando algo falla no sabés qué cambiar ni por dónde empezar."},
+  {q:"¿Cuál de estas NO es parte de un plan de negocios?",opts:["Análisis de mercado","Plan financiero","Playlist de Spotify del fundador","Estrategia de marketing"],ans:2,exp:"La playlist no va en el plan (aunque puede ayudar a la concentración)."},
+];
+
+const TIMER = 15;
+const FAKE_NAMES = ["Luca","Vale","Mateo","Sofi","Nico","Cami","Santi","Flor","Tomi","Juli","Agus","Marti","Pedro","Caro","Fer","Romi"];
+
+let state = {
+  playerName: '',
+  playerJoined: false,
+  playerAnswered: false,
+  playerScore: 0,
+  currentQ: -1,
+  questionActive: false,
+  timeLeft: TIMER,
+  players: {},
+  timerInterval: null,
+  phaseTimer: null,
+};
+
+// ── TAB SWITCH ─────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.nav-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='player')||(i===1&&t==='host')));
+  document.getElementById('tab-player').classList.toggle('active',t==='player');
+  document.getElementById('tab-host').classList.toggle('active',t==='host');
+}
+
+// ── SCREENS ────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('#tab-player .screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+// ── PLAYER ─────────────────────────────────────────────────
+function joinGame() {
+  const n = document.getElementById('inp-name').value.trim();
+  if(!n){alert('Poné tu nombre!');return;}
+  state.playerName = n;
+  state.playerJoined = true;
+  state.playerScore = 0;
+  state.playerAnswered = false;
+  state.players[n] = {name:n,score:0,totalTime:0,answers:[]};
+  document.getElementById('wait-name').textContent = n;
+  showScreen('s-wait');
+  updateHostUI();
+  renderLB();
+}
+
+function showQuestion(qi) {
+  const q = QS[qi];
+  document.getElementById('q-num-label').textContent = `Pregunta ${qi+1} de ${QS.length}`;
+  document.getElementById('q-text').textContent = q.q;
+  const pct = (qi/QS.length*100).toFixed(0);
+  document.getElementById('q-progress').style.width = pct+'%';
+
+  const colors = ['opt-a','opt-b','opt-c','opt-d'];
+  document.getElementById('q-opts').innerHTML = q.opts.map((o,i)=>
+    `<button class="opt ${colors[i]}" id="popt-${i}" onclick="pickAnswer(${i})">${o}</button>`
+  ).join('');
+  document.getElementById('q-feedback').className='feedback';
+  document.getElementById('q-pts').className='pts-badge';
+  document.getElementById('q-timer').className='q-timer';
+  document.getElementById('q-timer').textContent=state.timeLeft;
+  state.playerAnswered = false;
+  showScreen('s-question');
+}
+
+function pickAnswer(i) {
+  if(state.playerAnswered || !state.questionActive) return;
+  state.playerAnswered = true;
+  const q = QS[state.currentQ];
+  const timeTaken = TIMER - state.timeLeft + 0.5;
+  const isOk = i === q.ans;
+  const pts = isOk ? Math.max(100, Math.round(1000-(timeTaken/TIMER)*900)) : 0;
+
+  if(state.players[state.playerName]) {
+    state.players[state.playerName].score += pts;
+    state.players[state.playerName].totalTime += timeTaken;
+    state.players[state.playerName].answers.push({q:state.currentQ,ans:i,correct:isOk,pts,time:timeTaken});
+  }
+
+  document.querySelectorAll('#q-opts .opt').forEach((o,idx)=>{
+    o.classList.add('disabled');
+    if(idx===q.ans) o.classList.add('show-correct');
+  });
+  if(isOk) {
+    document.getElementById(`popt-${i}`).classList.remove('show-correct');
+    document.getElementById(`popt-${i}`).classList.add('correct');
+  } else {
+    document.getElementById(`popt-${i}`).classList.add('wrong');
+  }
+
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'feedback show ' + (isOk?'ok':'nope');
+  fb.textContent = (isOk?'✅ ':'❌ ') + q.exp;
+
+  if(pts>0) {
+    const pb = document.getElementById('q-pts');
+    pb.className='pts-badge show';
+    pb.textContent='+'+pts+' pts';
+  }
+
+  state.playerScore += pts;
+  renderLB();
+  updateHostUI();
+}
+
+function showResult() {
+  const sc = state.players[state.playerName]?.score || 0;
+  const pct = Math.round(sc/(QS.length*1000)*100);
+  const icons = pct>=80?'🏆':pct>=50?'🎯':'🚀';
+  const msgs = pct>=80?'¡Sos un crack del emprendimiento!':pct>=50?'¡Muy bien! Aprendiste algo nuevo hoy.':'¡Igual ya empezaste! La próxima lo das vuelta.';
+  const subs = 'Con estas ideas, estás listo para crear tu primer plan de negocios.';
+  document.getElementById('r-icon').textContent=icons;
+  document.getElementById('r-score').textContent=sc;
+  document.getElementById('r-msg').textContent=msgs;
+  document.getElementById('r-sub').textContent=subs;
+  showScreen('s-result');
+}
+
+// ── HOST ───────────────────────────────────────────────────
+function hostLaunch() {
+  if(state.currentQ >= QS.length-1 && state.currentQ >= 0){hostReset();return;}
+  state.currentQ++;
+  state.questionActive = true;
+  state.timeLeft = TIMER;
+  state.playerAnswered = false;
+
+  // Countdown then question
+  if(state.playerJoined) {
+    document.getElementById('cd-label').textContent = `Pregunta ${state.currentQ+1} de ${QS.length}`;
+    document.getElementById('cd-num').textContent = '3';
+    document.getElementById('cd-preview').textContent = '';
+    showScreen('s-countdown');
+    let cd=3;
+    const cdInt=setInterval(()=>{
+      cd--;
+      if(cd>0){ document.getElementById('cd-num').textContent=cd; }
+      else { clearInterval(cdInt); showQuestion(state.currentQ); }
+    },1000);
+  }
+
+  // Timer
+  clearInterval(state.timerInterval);
+  // Delay timer start by 3s (countdown)
+  setTimeout(()=>{
+    state.timerInterval = setInterval(()=>{
+      state.timeLeft--;
+      const tEl=document.getElementById('q-timer');
+      if(tEl){ tEl.textContent=state.timeLeft; tEl.className='q-timer'+(state.timeLeft<=5?' urgent':''); }
+      document.getElementById('h-badge-timer').textContent=state.timeLeft+'s';
+      if(state.timeLeft<=0){
+        clearInterval(state.timerInterval);
+        endQuestion();
+      }
+    },1000);
+  }, state.playerJoined ? 3200 : 0);
+
+  // Auto-answer fakes with random delays
+  Object.keys(state.players).filter(n=>n!==state.playerName).forEach(n=>{
+    const delay = 2500+Math.random()*10000;
+    setTimeout(()=>fakeAnswer(n), Math.min(delay, (TIMER-1)*1000)+3200);
+  });
+
+  document.getElementById('btn-launch').textContent=`▶ Lanzar pregunta ${state.currentQ+2}`;
+  document.getElementById('btn-next').style.display='none';
+  updateHostUI();
+  updateHostQ();
+}
+
+function fakeAnswer(name) {
+  if(!state.players[name]||state.players[name].answers.length>state.currentQ||!state.questionActive) return;
+  const q=QS[state.currentQ];
+  const isOk=Math.random()<0.62;
+  const ans=isOk?q.ans:(q.ans+1+Math.floor(Math.random()*3))%4;
+  const t=1+Math.random()*(TIMER-state.timeLeft+5);
+  const pts=isOk?Math.max(100,Math.round(1000-(t/TIMER)*900)):0;
+  state.players[name].score+=pts;
+  state.players[name].totalTime+=t;
+  state.players[name].answers.push({q:state.currentQ,ans,correct:isOk,pts,time:t});
+  renderLB();
+  updateHostUI();
+}
+
+function endQuestion() {
+  state.questionActive=false;
+  document.getElementById('h-badge-timer').textContent='–';
+  if(state.playerJoined&&!state.playerAnswered){
+    const fb=document.getElementById('q-feedback');
+    if(fb){fb.className='feedback show timeout';fb.textContent='⏰ Tiempo! '+QS[state.currentQ].exp;}
+    document.querySelectorAll('#q-opts .opt').forEach((o,i)=>{
+      o.classList.add('disabled');
+      if(i===QS[state.currentQ].ans) o.classList.add('show-correct');
+    });
+  }
+  renderLB();
+  updateHostQ(true);
+  document.getElementById('btn-next').style.display = state.currentQ<QS.length-1?'block':'none';
+  if(state.currentQ===QS.length-1&&state.playerJoined) setTimeout(showResult,2500);
+  if(state.currentQ>=QS.length-1) document.getElementById('btn-launch').textContent='↺ Reiniciar';
+}
+
+function hostNext() { hostLaunch(); }
+
+function hostReset() {
+  clearInterval(state.timerInterval);
+  state.currentQ=-1; state.questionActive=false; state.timeLeft=TIMER;
+  Object.keys(state.players).forEach(n=>{state.players[n].score=0;state.players[n].totalTime=0;state.players[n].answers=[];});
+  state.playerScore=0; state.playerAnswered=false;
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('btn-launch').textContent='▶ Lanzar pregunta 1';
+  document.getElementById('h-badge-q').textContent='Q 0/7';
+  document.getElementById('h-badge-timer').textContent='–';
+  document.getElementById('h-live-q').style.display='none';
+  renderLB();
+  if(state.playerJoined){
+    document.getElementById('wait-name').textContent=state.playerName;
+    showScreen('s-wait');
+  }
+}
+
+function addFake() {
+  const name=FAKE_NAMES[Math.floor(Math.random()*FAKE_NAMES.length)]+Math.floor(Math.random()*99);
+  if(state.players[name]) return;
+  state.players[name]={name,score:0,totalTime:0,answers:[]};
+  if(state.questionActive&&state.currentQ>=0){
+    const d=1500+Math.random()*8000;
+    setTimeout(()=>fakeAnswer(name),Math.min(d,(TIMER-1)*1000));
+  }
+  updateHostUI(); renderLB();
+}
+
+function updateHostUI() {
+  document.getElementById('h-badge-players').textContent=Object.keys(state.players).length+' jugadores';
+  document.getElementById('h-badge-q').textContent=`Q ${state.currentQ+1}/${QS.length}`;
+}
+
+function updateHostQ(showAns=false) {
+  const hq=document.getElementById('h-live-q');
+  if(state.currentQ<0){hq.style.display='none';return;}
+  hq.style.display='block';
+  const q=QS[state.currentQ];
+  const answered=Object.values(state.players).filter(p=>p.answers.length>state.currentQ).length;
+  hq.innerHTML=`<div class="live-q-box">
+    <div class="live-q-text">P${state.currentQ+1}: ${q.q}</div>
+    <div class="live-q-stats">
+      <span>Respondieron: <strong>${answered}/${Object.keys(state.players).length}</strong></span>
+      <span>Tiempo: <strong id="h-t-disp">${state.timeLeft}s</strong></span>
+      ${showAns?`<span style="color:#22AA66;font-weight:700">✓ ${q.opts[q.ans]}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function renderLB() {
+  const lb=document.getElementById('h-leaderboard');
+  if(!lb) return;
+  const sorted=Object.values(state.players).sort((a,b)=>b.score-a.score||a.totalTime-b.totalTime);
+  const max=sorted[0]?.score||1;
+  const medals=['🥇','🥈','🥉'];
+  const rowCls=['top1','top2','top3'];
+  if(!sorted.length){
+    lb.innerHTML='<div style="text-align:center;padding:2rem;color:#444;font-size:14px">Agregá jugadores simulados o usá la pestaña Jugador para entrar</div>';
+    return;
+  }
+  lb.innerHTML=sorted.map((p,i)=>`
+    <div class="lb-row ${rowCls[i]||''}">
+      <div class="lb-medal">${medals[i]||'#'+(i+1)}</div>
+      <div class="lb-name">${p.name}${p.name===state.playerName?' <span style="color:#FFD600;font-size:11px">(vos)</span>':''}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round(p.score/max*100)}%"></div></div>
+      <div class="lb-right">
+        <div class="lb-pts">${p.score} pts</div>
+        <div class="lb-time">${p.totalTime.toFixed(1)}s</div>
+      </div>
+    </div>`).join('');
+  updateHostQ();
+}
+
+renderLB();
+</script>
+</body>
+</html>
