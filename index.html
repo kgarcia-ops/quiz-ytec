@@ -17,6 +17,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes glow-green{0%,100%{box-shadow:0 0 8px #22AA6666}50%{box-shadow:0 0 25px #22AA66aa}}
 .nav-tabs{display:flex;background:#0a0a20;border-bottom:1px solid #2a2a50;position:sticky;top:0;z-index:100}
 .nav-tab{flex:1;padding:0.85rem;font-size:13px;font-weight:700;text-align:center;cursor:pointer;color:#555;border-bottom:3px solid transparent;transition:all 0.2s}
+.nav-tab.hidden{display:none}
 .nav-tab.active{color:#4B0CE0;border-bottom-color:#4B0CE0}
 .tab-content{display:none}.tab-content.active{display:block}
 .screen{display:none;min-height:calc(100vh - 48px);padding:1.5rem;flex-direction:column;align-items:center;justify-content:center}
@@ -452,6 +453,21 @@ function renderLB(){
   updateHostQ();
 }
 renderLB();
+
+// HOST ACCESS CONTROL
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const isHost = params.get('host') === 'ytec2026';
+  if(!isHost){
+    // Hide host tab completely
+    const tabs = document.querySelectorAll('.nav-tab');
+    if(tabs[1]) tabs[1].classList.add('hidden');
+    // Remove host tab content from reach
+    const hostTab = document.getElementById('tab-host');
+    if(hostTab) hostTab.style.display = 'none';
+  }
+})();
+
 </script>
 </body>
 </html>
